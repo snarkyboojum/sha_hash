@@ -1,3 +1,5 @@
+
+
 /*
 
 This implementation only works for SHA-512 currently. Other algorithms
@@ -10,6 +12,7 @@ The algorithm consists of two main stages:
  - Padding
  - Parsing into m-bit blocks
  - Setting initialisation values to be used in the hash computation
+
 2. Hash computation
  - generate message schedule
  - iteratively generate hash values using the message schedule etc
@@ -20,7 +23,7 @@ The algorithm consists of two main stages:
  - Word size 64 bits / u64
  - Message digest size (512 bits / 8 x 64 bit words)
 
- Big-endian bit order is used throughout.
+ Big-endian byte order is used throughout.
 
 */
 
@@ -32,14 +35,54 @@ The algorithm consists of two main stages:
 //ch(x,y,z) { (x & y) ^ (!x & z) }
 //maj(x,y,z) { (x & y) ^ ( x & z ) ^ (y & z) }
 
-fn pad_message(message: &[u8]) {}
+// msg should be a multiple of 1024 bits
+// pad with 1 then 0s up to msg.len % 1024 - 128 - 1
+fn pad_message(msg: &[u8]) {
+    println!("Message is: {} bytes long", msg.len());
+
+    println!("{}",msg.len() * 8 % 896);
+    // how many zeroes do we need and what's the total padding required
+
+    if (128 + 1 + msg.len() * 8) % 1024 > 0 {
+
+    }
+
+    let zeroes = 896 - (msg.len() * 8 % 896) - 1;
+    let padding_length = zeroes + 1 + 128;
+
+    use bytes::{BytesMut, BufMut};
+    let buffer_capacity = padding_length + msg.len() * 8;
+    let mut buf = BytesMut::with_capacity(buffer_capacity / 8);
+    println!("Buffer capacity: {}", buffer_capacity);
+    println!("zeroes: {}, padding_length: {}, msg.len(): {}", zeroes, padding_length, msg.len()*8);
+
+    buf.put(msg);
+    buf.put_u8(0x80);
+
+    // TODO: this is just wrong
+    //       there isn't an integer number of zero *bytes* in the padding (necessarily)
+    println!("Zero bytes: {}", (zeroes-7)/8);
+    for _ in 0..(zeroes-7)/8 {
+        buf.put_u8(0x00);
+    }
+    buf.put_u128(msg.len() as u128);
+
+    println!("{:?}", buf);
+    println!("{}",buf.len());
+}
 
 fn main() {
     println!("Welcome to the AES-512 implementation in Rust!");
 
-    let message = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
-    println!("Original message:\n{}", message);
-    pad_message(message.as_bytes());
+    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
+    //let msg = "abc";
+    let msg = [0u8; 3];
+    //println!("Original message:\n{}", msg);
+
+    // if the message isn't an integer multiple of 1024 bits, then pad it
+    if msg.len() * 8 % 1024 != 0 {
+        let padded_message = pad_message(&msg);
+    }
 }
 
 // SHA-384, SHA-512, SHA-512/224 and SHA-512/256 use the same sequence of

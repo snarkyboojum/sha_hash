@@ -86,10 +86,7 @@ fn main() {
     //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan".as_bytes();
     let msg = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".as_bytes();
     //let msg = [0u8; 3];
-    //println!("Original message:\n{}", msg);
 
-    // if the message isn't an integer multiple of 1024 bits, then pad it
-    //if msg.len() * 8 % 1024 != 0 {
     if msg.len() != 0 {
         let padded_message = pad_message(&msg);
     } else {

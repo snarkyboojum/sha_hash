@@ -75,10 +75,10 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
 
 // Functions to be used during the hash computation
 fn rotl(n: u64, x: u64) -> u64 {
-    (x << n) | (x >> 64 - n)
+    (x << n) | (x >> (64 - n))
 }
 fn rotr(n: u64, x: u64) -> u64 {
-    (x >> n) | (x << 64 - n)
+    (x >> n) | (x << (64 - n))
 }
 fn shr(n: u64, x: u64) -> u64 {
     x >> n
@@ -92,19 +92,19 @@ fn maj(x: u64, y: u64, z: u64) -> u64 {
 }
 
 fn s_sigma1_512(word: u64) -> u64 {
-    rotr(19, word) | rotr(61, word) | shr(6, word)
+    rotr(19, word) ^ rotr(61, word) ^ shr(6, word)
 }
 
 fn s_sigma0_512(word: u64) -> u64 {
-    rotr(1, word) | rotr(8, word) | shr(7, word)
+    rotr(1, word) ^ rotr(8, word) ^ shr(7, word)
 }
 
 fn b_sigma1_512(word: u64) -> u64 {
-    rotr(14, word) | rotr(18, word) | rotr(41, word)
+    rotr(14, word) ^ rotr(18, word) ^ rotr(41, word)
 }
 
 fn b_sigma0_512(word: u64) -> u64 {
-    rotr(28, word) | rotr(34, word) | rotr(39, word)
+    rotr(28, word) ^ rotr(34, word) ^ rotr(39, word)
 }
 
 fn main() {

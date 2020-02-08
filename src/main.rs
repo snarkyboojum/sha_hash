@@ -25,18 +25,10 @@ The algorithm consists of two main stages:
 
 */
 
-// Functions to be used during the hash computation
-//fn rotl(n, x) { (x << n) | (x >> w -n )}
-//fn rotr(n, x) { (x >> n) | (x << w - n) }
-//fn shr(n, x) { x >> n }
-
-//ch(x,y,z) { (x & y) ^ (!x & z) }
-//maj(x,y,z) { (x & y) ^ ( x & z ) ^ (y & z) }
-
 // msg should be a multiple of 1024 bits
 // pad with 1 then 0s up to msg.len % 1024 - 128 - 1
 #[allow(clippy::comparison_chain)]
-fn pad_message(msg: &[u8]) {
+fn pad_message(msg: &[u8]) -> Vec<u8> {
     println!("Message is: {} bytes long", msg.len());
 
     let num_blocks = (msg.len() * 8 + 128 + 1) / 1024;
@@ -76,8 +68,33 @@ fn pad_message(msg: &[u8]) {
     }
     buffer.put_u128(length_128);
 
-    println!("{:?}", buffer);
-    println!("{}", buffer.len());
+    //println!("{:?}", buffer);
+    //println!("{}", buffer.len());
+    buffer.to_vec()
+}
+
+// Functions to be used during the hash computation
+//fn rotl(n, x) { (x << n) | (x >> w -n )}
+//fn rotr(n, x) { (x >> n) | (x << w - n) }
+//fn shr(n, x) { x >> n }
+
+//ch(x,y,z) { (x & y) ^ (!x & z) }
+//maj(x,y,z) { (x & y) ^ ( x & z ) ^ (y & z) }
+
+fn s_sigma1_512(word: u64) -> u64 {
+    0u64
+}
+
+fn s_sigma0_512(word: u64) -> u64 {
+    0u64
+}
+
+fn b_sigma1_512(word: u64) -> u64 {
+    0u64
+}
+
+fn b_sigma0_512(word: u64) -> u64 {
+    0u64
 }
 
 fn main() {
@@ -87,12 +104,53 @@ fn main() {
     let msg = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".as_bytes();
     //let msg = [0u8; 3];
 
-    if msg.len() != 0 {
+    if !msg.is_empty() {
         let padded_message = pad_message(&msg);
+        println!("Length of padded message: {} bytes", padded_message.len());
+
+        // we only take n * 1024 bit messages
+        assert_eq!((padded_message.len() * 8) % 1024, 0);
+
+        let mut msg_schedule: [u64; 80] = [0u64; 80];
+        let mut hashes: [u64; 8] = SHA_512_INIT;
+
+        use byteorder::{BigEndian, ByteOrder};
+        // parse into 1024 bit blocks (128 bytes), using 64 bit words (8 bytes)
+        for (i, block) in padded_message.chunks(128).enumerate() {
+            for (j, word) in block.chunks(8).enumerate() {
+                // see 6.4.1 and 6.4.2 on p24 of
+                // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+                println!("Word: {:?}", word);
+
+                // prepare the 80 word message schedule
+                let t = i + j;
+                if t < 16 {
+                    msg_schedule[t] = BigEndian::read_u64(word);
+                } else {
+                    // refer to p11 for sigma function definition etc
+                    s_sigma1_512(msg_schedule[t - 2])
+                        + msg_schedule[t - 7]
+                        + s_sigma0_512(msg_schedule[t - 15])
+                        + msg_schedule[t - 16];
+                }
+            }
+        }
     } else {
         println!("Message is empty, i.e. length is 0");
     }
 }
+
+// the initial hash value consists of the following eight 64-bit words (i.e. 512 bits)
+const SHA_512_INIT: [u64; 8] = [
+    0x6a09_e667_f3bc_c908,
+    0xbb67_ae85_84ca_a73b,
+    0x3c6e_f372_fe94_f82b,
+    0xa54f_f53a_5f1d_36f1,
+    0x510e_527f_ade6_82d1,
+    0x9b05_688c_2b3e_6c1f,
+    0x1f83_d9ab_fb41_bd6b,
+    0x5be0_cd19_137e_2179,
+];
 
 // SHA-384, SHA-512, SHA-512/224 and SHA-512/256 use the same sequence of
 // eighty constant 64-bit words

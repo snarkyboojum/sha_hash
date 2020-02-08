@@ -78,8 +78,12 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
 //fn rotr(n, x) { (x >> n) | (x << w - n) }
 //fn shr(n, x) { x >> n }
 
-//ch(x,y,z) { (x & y) ^ (!x & z) }
-//maj(x,y,z) { (x & y) ^ ( x & z ) ^ (y & z) }
+fn ch(x: u64, y: u64, z: u64) -> u64 {
+    (x & y) ^ (!x & z)
+}
+fn maj(x: u64, y: u64, z: u64) -> u64 {
+    (x & y) ^ (x & z) ^ (y & z)
+}
 
 fn s_sigma1_512(word: u64) -> u64 {
     0u64
@@ -115,33 +119,56 @@ fn main() {
         let mut hashes: [u64; 8] = SHA_512_INIT;
         let mut t = 0;
 
-        // prepare the first 16 words in the message schedule
         // parse into 1024 bit blocks (128 bytes), using 64 bit words (8 bytes)
+        // see 6.4.1 and 6.4.2 on p24 of
+        // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
         use byteorder::{BigEndian, ByteOrder};
-        for block in padded_message.chunks(128) {
-            // we only need to seed the message schedule with the first 16 words
-            if t > 15 {
-                break;
-            }
-            for word in block.chunks(8) {
-                // see 6.4.1 and 6.4.2 on p24 of
-                // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
-                //println!("Word: {:?}", word);
 
+        for block in padded_message.chunks(128) {
+            // build message schedule
+            for word in block.chunks(8) {
                 if t < 16 {
                     msg_schedule[t] = BigEndian::read_u64(word);
                 }
                 t += 1;
             }
-        }
+            for t in 16..80 {
+                s_sigma1_512(msg_schedule[t - 2])
+                    + msg_schedule[t - 7]
+                    + s_sigma0_512(msg_schedule[t - 15])
+                    + msg_schedule[t - 16];
+            }
 
-        // now build the remaining words in the 80 word message schedule
-        for t in 16..80 {
-            // refer to p11 for sigma function definition etc
-            s_sigma1_512(msg_schedule[t - 2])
-                + msg_schedule[t - 7]
-                + s_sigma0_512(msg_schedule[t - 15])
-                + msg_schedule[t - 16];
+            let mut a = hashes[0];
+            let mut b = hashes[1];
+            let mut c = hashes[2];
+            let mut d = hashes[3];
+            let mut e = hashes[4];
+            let mut f = hashes[5];
+            let mut g = hashes[6];
+            let mut h = hashes[7];
+
+            for t in 0..79 {
+                let t1 = h + b_sigma1_512(e) + ch(e, f, g) + SHA_512[t] + msg_schedule[t];
+                let t2 = b_sigma0_512(a) + maj(a, b, c);
+                h = g;
+                g = f;
+                f = e;
+                e = d + t1;
+                d = c;
+                c = b;
+                b = a;
+                a = t1 + t2;
+            }
+
+            hashes[0] += a;
+            hashes[1] += b;
+            hashes[2] += c;
+            hashes[3] += d;
+            hashes[4] += e;
+            hashes[5] += f;
+            hashes[6] += g;
+            hashes[7] += h;
         }
 
     //

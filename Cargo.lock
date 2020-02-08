@@ -13,9 +13,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 
 [[package]]
+name = "modulo"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53db447cac1df8402bef9a2ccacb0ea0dd1061b935e9e9ab9e5082c516aaada8"
+
+[[package]]
 name = "sha_hash"
 version = "0.1.0"
 dependencies = [
  "byteorder",
  "bytes",
+ "modulo",
 ]

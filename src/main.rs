@@ -29,7 +29,7 @@ The algorithm consists of two main stages:
 // pad with 1 then 0s up to msg.len % 1024 - 128 - 1
 #[allow(clippy::comparison_chain)]
 fn pad_message(msg: &[u8]) -> Vec<u8> {
-    println!("Message is: {} bytes long", msg.len());
+    //println!("Message is: {} bytes long", msg.len());
 
     let num_blocks = (msg.len() * 8 + 128 + 1) / 1024;
     let min_msg_bits = msg.len() * 8 % 1024 + 1;
@@ -47,9 +47,9 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
 
     let buffer_size = (msg.len() * 8) + 1 + num_zero_bits + 128;
 
-    println!("Number of 1024 bit blocks needed: {}", num_blocks);
-    println!("Number of zero bits: {}", num_zero_bits);
-    println!("Total buffer size: {}", buffer_size);
+    //println!("Number of 1024 bit blocks needed: {}", num_blocks);
+    //println!("Number of zero bits: {}", num_zero_bits);
+    //println!("Total buffer size: {}", buffer_size);
 
     // 128 bit representation of the length of the message
     let length_128: u128 = (msg.len() * 8) as u128;
@@ -110,13 +110,15 @@ fn b_sigma0_512(word: u64) -> u64 {
 fn main() {
     println!("Welcome to the AES-512 implementation in Rust!");
 
-    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan".as_bytes();
-    let msg = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".as_bytes();
+    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
+    //let msg = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let msg = "Well, this is buggy and doesn't seem to work. It's raining outside - so I'm taking that as a sign that I should be going to bed. I'll see if I can get this working tomorrow sometime";
     //let msg = [0u8; 3];
 
     if !msg.is_empty() {
-        let padded_message = pad_message(&msg);
-        println!("Length of padded message: {} bytes", padded_message.len());
+        println!("Message is: {}", msg);
+        let padded_message = pad_message(&msg.as_bytes());
+        //println!("Length of padded message: {} bytes", padded_message.len());
 
         // we only take n * 1024 bit messages
         assert_eq!((padded_message.len() * 8) % 1024, 0);
@@ -129,6 +131,7 @@ fn main() {
         // see 6.4.1 and 6.4.2 on p24 of
         // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
         use byteorder::{BigEndian, ByteOrder};
+        use modulo::Mod;
 
         for block in padded_message.chunks(128) {
             // build message schedule
@@ -139,10 +142,10 @@ fn main() {
                 t += 1;
             }
             for t in 16..80 {
-                s_sigma1_512(msg_schedule[t - 2])
-                    + msg_schedule[t - 7]
-                    + s_sigma0_512(msg_schedule[t - 15])
-                    + msg_schedule[t - 16];
+                msg_schedule[t] = s_sigma1_512(msg_schedule[t - 2]).modulo(2 ^ 64)
+                    + msg_schedule[t - 7].modulo(2 ^ 64)
+                    + s_sigma0_512(msg_schedule[t - 15]).modulo(2 ^ 64)
+                    + msg_schedule[t - 16].modulo(2 ^ 64);
             }
 
             let mut a = hashes[0];
@@ -154,37 +157,36 @@ fn main() {
             let mut g = hashes[6];
             let mut h = hashes[7];
 
-            for t in 0..79 {
-                println!("{}", t);
-                println!(
-                    "{}, {}, {}, {}, {}",
-                    h,
-                    b_sigma1_512(e),
-                    ch(e, f, g),
-                    SHA_512[t],
-                    msg_schedule[t]
-                );
-                let t1 = h + b_sigma1_512(e) + ch(e, f, g) + SHA_512[t] + msg_schedule[t];
-                let t2 = b_sigma0_512(a) + maj(a, b, c);
+            for t in 0..80 {
+                //println!("{}", t);
+                let t1 = h.modulo(2 ^ 64)
+                    + b_sigma1_512(e).modulo(2 ^ 64)
+                    + ch(e, f, g).modulo(2 ^ 64)
+                    + SHA_512[t].modulo(2 ^ 64)
+                    + msg_schedule[t].modulo(2 ^ 64);
+
+                let t2 = b_sigma0_512(a).modulo(2 ^ 64) + maj(a, b, c).modulo(2 ^ 64);
                 h = g;
                 g = f;
                 f = e;
-                e = d + t1;
+                e = d.modulo(2 ^ 64) + t1.modulo(2 ^ 64);
                 d = c;
                 c = b;
                 b = a;
-                a = t1 + t2;
+                a = t1.modulo(2 ^ 64) + t2.modulo(2 ^ 64);
             }
 
-            hashes[0] += a;
-            hashes[1] += b;
-            hashes[2] += c;
-            hashes[3] += d;
-            hashes[4] += e;
-            hashes[5] += f;
-            hashes[6] += g;
-            hashes[7] += h;
+            hashes[0] = (hashes[0] + a); // % (2 ^ 64);
+            hashes[1] = (hashes[2] + b); // % (2 ^ 64);
+            hashes[2] = (hashes[3] + c); // % (2 ^ 64);
+            hashes[3] = (hashes[4] + d); // % (2 ^ 64);
+            hashes[4] = (hashes[5] + e); // % (2 ^ 64);
+            hashes[5] = (hashes[6] + f); // % (2 ^ 64);
+            hashes[6] = (hashes[7] + g); // % (2 ^ 64);
+            hashes[7] = (hashes[0] + h); // % (2 ^ 64);
         }
+
+        println!("Hash of message is: {:#x?}", hashes);
 
     //
     } else {

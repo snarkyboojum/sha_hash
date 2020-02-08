@@ -74,9 +74,15 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
 }
 
 // Functions to be used during the hash computation
-//fn rotl(n, x) { (x << n) | (x >> w -n )}
-//fn rotr(n, x) { (x >> n) | (x << w - n) }
-//fn shr(n, x) { x >> n }
+fn rotl(n: u64, x: u64) -> u64 {
+    (x << n) | (x >> 64 - n)
+}
+fn rotr(n: u64, x: u64) -> u64 {
+    (x >> n) | (x << 64 - n)
+}
+fn shr(n: u64, x: u64) -> u64 {
+    x >> n
+}
 
 fn ch(x: u64, y: u64, z: u64) -> u64 {
     (x & y) ^ (!x & z)
@@ -86,19 +92,19 @@ fn maj(x: u64, y: u64, z: u64) -> u64 {
 }
 
 fn s_sigma1_512(word: u64) -> u64 {
-    0u64
+    rotr(19, word) | rotr(61, word) | shr(6, word)
 }
 
 fn s_sigma0_512(word: u64) -> u64 {
-    0u64
+    rotr(1, word) | rotr(8, word) | shr(7, word)
 }
 
 fn b_sigma1_512(word: u64) -> u64 {
-    0u64
+    rotr(14, word) | rotr(18, word) | rotr(41, word)
 }
 
 fn b_sigma0_512(word: u64) -> u64 {
-    0u64
+    rotr(28, word) | rotr(34, word) | rotr(39, word)
 }
 
 fn main() {
@@ -149,6 +155,15 @@ fn main() {
             let mut h = hashes[7];
 
             for t in 0..79 {
+                println!("{}", t);
+                println!(
+                    "{}, {}, {}, {}, {}",
+                    h,
+                    b_sigma1_512(e),
+                    ch(e, f, g),
+                    SHA_512[t],
+                    msg_schedule[t]
+                );
                 let t1 = h + b_sigma1_512(e) + ch(e, f, g) + SHA_512[t] + msg_schedule[t];
                 let t2 = b_sigma0_512(a) + maj(a, b, c);
                 h = g;

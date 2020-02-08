@@ -1,5 +1,3 @@
-
-
 /*
 
 This implementation only works for SHA-512 currently. Other algorithms
@@ -37,51 +35,65 @@ The algorithm consists of two main stages:
 
 // msg should be a multiple of 1024 bits
 // pad with 1 then 0s up to msg.len % 1024 - 128 - 1
+#[allow(clippy::comparison_chain)]
 fn pad_message(msg: &[u8]) {
     println!("Message is: {} bytes long", msg.len());
 
-    println!("{}",msg.len() * 8 % 896);
-    // how many zeroes do we need and what's the total padding required
+    let num_blocks = (msg.len() * 8 + 128 + 1) / 1024;
+    let min_msg_bits = msg.len() * 8 % 1024 + 1;
+    let mut num_zero_bits = 0;
 
-    if (128 + 1 + msg.len() * 8) % 1024 > 0 {
-
+    if min_msg_bits < 896 {
+        num_zero_bits = 896 - (msg.len() * 8 % 1024 + 1);
+    } else if min_msg_bits > 896 {
+        if num_blocks > 1 {
+            num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024) + 1024 * num_blocks;
+        } else {
+            num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024);
+        }
     }
 
-    let zeroes = 896 - (msg.len() * 8 % 896) - 1;
-    let padding_length = zeroes + 1 + 128;
+    let buffer_size = (msg.len() * 8) + 1 + num_zero_bits + 128;
 
-    use bytes::{BytesMut, BufMut};
-    let buffer_capacity = padding_length + msg.len() * 8;
-    let mut buf = BytesMut::with_capacity(buffer_capacity / 8);
-    println!("Buffer capacity: {}", buffer_capacity);
-    println!("zeroes: {}, padding_length: {}, msg.len(): {}", zeroes, padding_length, msg.len()*8);
+    println!("Number of 1024 bit blocks needed: {}", num_blocks);
+    println!("Number of zero bits: {}", num_zero_bits);
+    println!("Total buffer size: {}", buffer_size);
 
-    buf.put(msg);
-    buf.put_u8(0x80);
+    // 128 bit representation of the length of the message
+    let length_128: u128 = (msg.len() * 8) as u128;
 
-    // TODO: this is just wrong
-    //       there isn't an integer number of zero *bytes* in the padding (necessarily)
-    println!("Zero bytes: {}", (zeroes-7)/8);
-    for _ in 0..(zeroes-7)/8 {
-        buf.put_u8(0x00);
+    use bytes::{BufMut, BytesMut};
+    let mut buffer = BytesMut::with_capacity(buffer_size / 8);
+
+    buffer.put(msg);
+    if num_zero_bits > 0 {
+        buffer.put_u8(0x80);
+        for _ in 0..(num_zero_bits / 8) {
+            buffer.put_u8(0x00);
+        }
+    } else {
+        // TODO: not sure how to handle this
     }
-    buf.put_u128(msg.len() as u128);
+    buffer.put_u128(length_128);
 
-    println!("{:?}", buf);
-    println!("{}",buf.len());
+    println!("{:?}", buffer);
+    println!("{}", buffer.len());
 }
 
 fn main() {
     println!("Welcome to the AES-512 implementation in Rust!");
 
-    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
-    //let msg = "abc";
-    let msg = [0u8; 3];
+    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan".as_bytes();
+    let msg = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".as_bytes();
+    //let msg = [0u8; 3];
     //println!("Original message:\n{}", msg);
 
     // if the message isn't an integer multiple of 1024 bits, then pad it
-    if msg.len() * 8 % 1024 != 0 {
+    //if msg.len() * 8 % 1024 != 0 {
+    if msg.len() != 0 {
         let padded_message = pad_message(&msg);
+    } else {
+        println!("Message is empty, i.e. length is 0");
     }
 }
 

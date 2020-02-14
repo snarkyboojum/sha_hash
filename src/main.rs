@@ -29,8 +29,6 @@ The algorithm consists of two main stages:
 // pad with 1 then 0s up to msg.len % 1024 - 128 - 1
 #[allow(clippy::comparison_chain)]
 fn pad_message(msg: &[u8]) -> Vec<u8> {
-    //println!("Message is: {} bytes long", msg.len());
-
     let num_blocks = (msg.len() * 8 + 128 + 1) / 1024;
     let min_msg_bits = msg.len() * 8 % 1024 + 1;
     let mut num_zero_bits = 0;
@@ -44,19 +42,13 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
             num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024);
         }
     }
-
     let buffer_size = (msg.len() * 8) + 1 + num_zero_bits + 128;
-
-    //println!("Number of 1024 bit blocks needed: {}", num_blocks);
-    //println!("Number of zero bits: {}", num_zero_bits);
-    //println!("Total buffer size: {}", buffer_size);
 
     // 128 bit representation of the length of the message
     let length_128: u128 = (msg.len() * 8) as u128;
 
     use bytes::{BufMut, BytesMut};
     let mut buffer = BytesMut::with_capacity(buffer_size / 8);
-
     buffer.put(msg);
     if num_zero_bits > 0 {
         buffer.put_u8(0x80);
@@ -67,9 +59,6 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
         // TODO: not sure how to handle this
     }
     buffer.put_u128(length_128);
-
-    //println!("{:?}", buffer);
-    //println!("{}", buffer.len());
     buffer.to_vec()
 }
 

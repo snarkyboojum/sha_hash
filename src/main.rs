@@ -101,16 +101,11 @@ fn add(a: u64, b: u64) -> u64 {
     (num % 2u128.pow(64)) as u64
 }
 
-fn main() {
-    println!("Welcome to the AES-512 implementation in Rust!");
-
-    let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
-    //let msg = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
-    //let msg = "abc";
-
-    if !msg.is_empty() {
-        println!("Message is: {}", msg);
-        let padded_message = pad_message(&msg.as_bytes());
+fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
+    if msg.is_empty() {
+        None
+    } else {
+        let padded_message = pad_message(msg);
         //println!("Padded message: {:#x?}", padded_message);
         //println!("Length of padded message: {} bytes", padded_message.len());
 
@@ -136,7 +131,13 @@ fn main() {
                 t += 1;
             }
             for t in 16..80 {
-                msg_schedule[t] = add(add(add(s_sigma1_512(msg_schedule[t - 2]), msg_schedule[t - 7]), s_sigma0_512(msg_schedule[t - 15])), msg_schedule[t - 16]);
+                msg_schedule[t] = add(
+                    add(
+                        add(s_sigma1_512(msg_schedule[t - 2]), msg_schedule[t - 7]),
+                        s_sigma0_512(msg_schedule[t - 15]),
+                    ),
+                    msg_schedule[t - 16],
+                );
             }
 
             /*
@@ -158,7 +159,10 @@ fn main() {
 
             for t in 0..80 {
                 //print!("t={}: ", t);
-                let t1 = add(add(add(add(h, b_sigma1_512(e)), ch(e, f, g)), SHA_512[t]), msg_schedule[t]);
+                let t1 = add(
+                    add(add(add(h, b_sigma1_512(e)), ch(e, f, g)), SHA_512[t]),
+                    msg_schedule[t],
+                );
 
                 let t2 = add(b_sigma0_512(a), maj(a, b, c));
                 h = g;
@@ -188,10 +192,81 @@ fn main() {
             hashes[7] = add(hashes[7], h);
         }
 
-        println!("Hash of message is: {:#x?}", hashes);
+        Some(hashes)
+    }
+}
 
-    } else {
-        println!("Message is empty, i.e. length is 0");
+fn main() {
+    println!("Welcome to the AES-512 implementation in Rust!");
+
+    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
+    //let msg = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+    let msg = "abc";
+    let hashes = sha512_hash(&msg.as_bytes());
+    println!("Hash of message is: {:#x?}", hashes.unwrap());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sha512_hash() {
+        let messages = ["abc", "", "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"];
+
+        use std::collections::HashMap;
+        let mut message_hashes: HashMap<&str, [u64; 8]> = HashMap::new();
+        message_hashes.insert(
+            "",
+            [
+                0xcf83e1357eefb8bd,
+                0xf1542850d66d8007,
+                0xd620e4050b5715dc,
+                0x83f4a921d36ce9ce,
+                0x47d0d13c5d85f2b0,
+                0xff8318d2877eec2f,
+                0x63b931bd47417a81,
+                0xa538327af927da3e,
+            ],
+        );
+        message_hashes.insert(
+            "abc",
+            [
+                0xddaf35a193617aba,
+                0xcc417349ae204131,
+                0x12e6fa4e89a97ea2,
+                0x0a9eeee64b55d39a,
+                0x2192992a274fc1a8,
+                0x36ba3c23a3feebbd,
+                0x454d4423643ce80e,
+                0x2a9ac94fa54ca49f,
+            ],
+        );
+        message_hashes.insert(
+            "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+            [
+                0x204a8fc6dda82f0a,
+                0x0ced7beb8e08a416,
+                0x57c16ef468b228a8,
+                0x279be331a703c335,
+                0x96fd15c13b1b07f9,
+                0xaa1d3bea57789ca0,
+                0x31ad85c7a71dd703,
+                0x54ec631238ca3445,
+            ],
+        );
+        message_hashes.insert(
+            "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu",
+            [0x8e959b75dae313da, 0x8cf4f72814fc143f, 0x8f7779c6eb9f7fa1, 0x7299aeadb6889018, 0x501d289e4900f7e4, 0x331b99dec4b5433a, 0xc7d329eeb6dd2654, 0x5e96e55b874be909]
+        );
+
+        for (msg, hash) in message_hashes.iter() {
+            let test_hashes = sha512_hash(&msg.as_bytes());
+
+            for (i, test_hash) in test_hashes.iter().enumerate() {
+                assert_eq!(hash[i], test_hash[i]);
+            }
+        }
     }
 }
 

@@ -32,15 +32,21 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
     let min_msg_bits = msg.len() * 8 % 1024 + 1;
     let mut num_zero_bits = 0;
 
-    if min_msg_bits < 896 {
-        num_zero_bits = 896 - (msg.len() * 8 % 1024 + 1);
-    } else if min_msg_bits > 896 {
-        if num_blocks > 1 {
-            num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024) + 1024 * num_blocks;
-        } else {
-            num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024);
+    use std::cmp::Ordering;
+    match min_msg_bits.cmp(&896) {
+        Ordering::Less => {
+            num_zero_bits = 896 - (msg.len() * 8 % 1024 + 1);
         }
+        Ordering::Greater => {
+            if num_blocks > 1 {
+                num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024) + 1024 * num_blocks;
+            } else {
+                num_zero_bits = 1024 - ((msg.len() * 8 + 1 + 128) % 1024);
+            }
+        }
+        Ordering::Equal => {}
     }
+
     let buffer_size = (msg.len() * 8) + 1 + num_zero_bits + 128;
 
     // 128 bit representation of the length of the message

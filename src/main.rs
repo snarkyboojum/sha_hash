@@ -27,7 +27,6 @@ The algorithm consists of two main stages:
 
 // msg should be a multiple of 1024 bits
 // pad with 1 then 0s up to msg.len % 1024 - 128 - 1
-#[allow(clippy::comparison_chain)]
 fn pad_message(msg: &[u8]) -> Vec<u8> {
     let num_blocks = (msg.len() * 8 + 128 + 1) / 1024;
     let min_msg_bits = msg.len() * 8 % 1024 + 1;
@@ -63,6 +62,7 @@ fn pad_message(msg: &[u8]) -> Vec<u8> {
 }
 
 // Functions to be used during the hash computation
+#[allow(dead_code)]
 fn rotl(n: u64, x: u64) -> u64 {
     (x << n) | (x >> (64 - n))
 }
@@ -119,7 +119,7 @@ fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
 
         let mut hashes: [u64; 8] = SHA_512_INIT;
         //println!("Initial hashes: {:#x?}", hashes);
-        for (i, block) in padded_message.chunks(128).enumerate() {
+        for (_i, block) in padded_message.chunks(128).enumerate() {
             let mut t = 0;
             let mut msg_schedule: [u64; 80] = [0u64; 80];
 

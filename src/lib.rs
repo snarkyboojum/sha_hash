@@ -107,7 +107,7 @@ fn add(a: u64, b: u64) -> u64 {
     (num % 2u128.pow(64)) as u64
 }
 
-fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
+pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
     if msg.is_empty() {
         None
     } else {
@@ -200,17 +200,6 @@ fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
 
         Some(hashes)
     }
-}
-
-fn main() {
-    println!("Welcome to the AES-512 implementation in Rust!");
-
-    //let msg = "Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives. -Carl Sagan";
-    let msg = "abc";
-    println!("Message is: {}", msg);
-
-    let hashes = sha512_hash(&msg.as_bytes());
-    println!("Hash of message is: {:#x?}", hashes.unwrap());
 }
 
 #[cfg(test)]

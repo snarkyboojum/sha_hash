@@ -1,11 +1,16 @@
 [package]
 name = "sha_hash"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Adrian White <snarkyboojum@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 bytes = "0.5.4"
 byteorder = "1.3.4"
+
+[dev-dependencies]
+criterion = "0.3.1"
+
+[[bench]]
+name = "sha512_benchmark"
+harness = false

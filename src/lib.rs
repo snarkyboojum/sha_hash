@@ -102,11 +102,6 @@ fn b_sigma0_512(word: u64) -> u64 {
     rotr(28, word) ^ rotr(34, word) ^ rotr(39, word)
 }
 
-fn add(a: u64, b: u64) -> u64 {
-    let num: u128 = a as u128 + b as u128;
-    (num % 2u128.pow(64)) as u64
-}
-
 pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
     if msg.is_empty() {
         None
@@ -137,13 +132,8 @@ pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
                 t += 1;
             }
             for t in 16..80 {
-                msg_schedule[t] = add(
-                    add(
-                        add(s_sigma1_512(msg_schedule[t - 2]), msg_schedule[t - 7]),
-                        s_sigma0_512(msg_schedule[t - 15]),
-                    ),
-                    msg_schedule[t - 16],
-                );
+                msg_schedule[t] = s_sigma1_512(msg_schedule[t - 2]).wrapping_add(msg_schedule[t - 7]).wrapping_add(
+                        s_sigma0_512(msg_schedule[t - 15])).wrapping_add(msg_schedule[t - 16]);
             }
 
             /*
@@ -165,20 +155,17 @@ pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
 
             for t in 0..80 {
                 //print!("t={}: ", t);
-                let t1 = add(
-                    add(add(add(h, b_sigma1_512(e)), ch(e, f, g)), SHA_512[t]),
-                    msg_schedule[t],
-                );
+                let t1 = h.wrapping_add(b_sigma1_512(e)).wrapping_add(ch(e, f, g)).wrapping_add(SHA_512[t]).wrapping_add(msg_schedule[t]);
+                let t2 = b_sigma0_512(a).wrapping_add(maj(a, b, c));
 
-                let t2 = add(b_sigma0_512(a), maj(a, b, c));
                 h = g;
                 g = f;
                 f = e;
-                e = add(d, t1);
+                e = d.wrapping_add(t1);
                 d = c;
                 c = b;
                 b = a;
-                a = add(t1, t2);
+                a = t1.wrapping_add(t2);
                 /*
                 print!(
                     "A: {:#x?} B: {:#x?} C: {:#x?} D: {:#x?} E: {:#x?} F: {:#x?} G: {:#x?} H: {:#x?}",
@@ -188,14 +175,14 @@ pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
                 */
             }
 
-            hashes[0] = add(hashes[0], a);
-            hashes[1] = add(hashes[1], b);
-            hashes[2] = add(hashes[2], c);
-            hashes[3] = add(hashes[3], d);
-            hashes[4] = add(hashes[4], e);
-            hashes[5] = add(hashes[5], f);
-            hashes[6] = add(hashes[6], g);
-            hashes[7] = add(hashes[7], h);
+            hashes[0] = hashes[0].wrapping_add(a);
+            hashes[1] = hashes[1].wrapping_add(b);
+            hashes[2] = hashes[2].wrapping_add(c);
+            hashes[3] = hashes[3].wrapping_add(d);
+            hashes[4] = hashes[4].wrapping_add(e);
+            hashes[5] = hashes[5].wrapping_add(f);
+            hashes[6] = hashes[6].wrapping_add(g);
+            hashes[7] = hashes[7].wrapping_add(h);
         }
 
         Some(hashes)

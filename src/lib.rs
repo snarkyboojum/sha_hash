@@ -132,8 +132,10 @@ pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
                 t += 1;
             }
             for t in 16..80 {
-                msg_schedule[t] = s_sigma1_512(msg_schedule[t - 2]).wrapping_add(msg_schedule[t - 7]).wrapping_add(
-                        s_sigma0_512(msg_schedule[t - 15])).wrapping_add(msg_schedule[t - 16]);
+                msg_schedule[t] = s_sigma1_512(msg_schedule[t - 2])
+                    .wrapping_add(msg_schedule[t - 7])
+                    .wrapping_add(s_sigma0_512(msg_schedule[t - 15]))
+                    .wrapping_add(msg_schedule[t - 16]);
             }
 
             /*
@@ -155,7 +157,11 @@ pub fn sha512_hash(msg: &[u8]) -> Option<[u64; 8]> {
 
             for t in 0..80 {
                 //print!("t={}: ", t);
-                let t1 = h.wrapping_add(b_sigma1_512(e)).wrapping_add(ch(e, f, g)).wrapping_add(SHA_512[t]).wrapping_add(msg_schedule[t]);
+                let t1 = h
+                    .wrapping_add(b_sigma1_512(e))
+                    .wrapping_add(ch(e, f, g))
+                    .wrapping_add(SHA_512[t])
+                    .wrapping_add(msg_schedule[t]);
                 let t2 = b_sigma0_512(a).wrapping_add(maj(a, b, c));
 
                 h = g;

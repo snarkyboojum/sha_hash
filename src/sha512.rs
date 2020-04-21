@@ -197,8 +197,6 @@ pub fn hash(msg: &[u8]) -> Option<[u64; 8]> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_sha512_hash() {
         use std::collections::HashMap;

@@ -1,6 +1,6 @@
 ## Overview
 
-This is a naive implementation of the Secure Hash Standard for at least SHA-512. It should work reasonably slowly, and be reasonably correct. It's not supposed to be efficient, it's supposed to be edifying for the person writing it :)
+This library contains naive implementations of the Secure Hash Standard for SHA-256 and SHA-512. It should work reasonably slowly, and be reasonably correct. It's not supposed to be fast or efficient. It's supposed to be edifying for the person writing it :)
 
 ## Resources
 
